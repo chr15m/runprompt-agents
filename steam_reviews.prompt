@@ -20,7 +20,7 @@ You are a Steam game review analyst. Your job is to analyze Steam reviews and ex
 
 Note: Smaller or niche games may only have a handful of reviews. This is normal - work with whatever reviews are available and adjust your analysis accordingly.
 
-If you don't get many reviews with the default filter, try using `filter="recent"` or `filter="updated"` instead of the default `filter="all"`.
+If you get less than 100 reviews for a popular game with the default filter, try using `filter="recent"` or `filter="updated"` instead of the default `filter="all"`.
 
 ## Output Format
 
