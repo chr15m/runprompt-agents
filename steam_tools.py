@@ -54,15 +54,20 @@ def steam_search(query: str):
     return {"query": query, "total": data.get("total", 0), "results": results}
 
 
-def steam_reviews(app_id: str, num_reviews: int = 100):
+def steam_reviews(app_id: str, num_reviews: int = 100, filter: str = "all"):
     """Fetch Steam reviews for a game by app ID.
     
     Returns recent reviews with text, recommendation, playtime, and vote counts.
     Use steam_search() first if you need to find the app ID from a game name.
+    
+    Filter options:
+    - "all" - All reviews (default)
+    - "recent" - Most recent reviews
+    - "updated" - Recently updated reviews
     """
     app_id = str(app_id).strip()
-    url = "https://store.steampowered.com/appreviews/%s?json=1&language=english&num_per_page=%d&purchase_type=all" % (
-        urllib.parse.quote(app_id), min(num_reviews, 100))
+    url = "https://store.steampowered.com/appreviews/%s?json=1&language=english&num_per_page=%d&filter=%s&purchase_type=all" % (
+        urllib.parse.quote(app_id), min(num_reviews, 100), urllib.parse.quote(filter))
     data = _fetch_json(url)
     if "error" in data:
         return data
