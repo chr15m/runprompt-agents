@@ -54,6 +54,61 @@ def steam_search(query: str):
     return {"query": query, "total": data.get("total", 0), "results": results}
 
 
+def steam_app_details(app_id: str):
+    """Get detailed information about a Steam game by app ID.
+    
+    Returns comprehensive game data including description, genres, tags,
+    developers, publishers, release date, metacritic score, and more.
+    Use steam_search() first if you need to find the app ID from a game name.
+    """
+    app_id = str(app_id).strip()
+    url = "https://store.steampowered.com/api/appdetails?appids=%s&cc=us&l=en" % (
+        urllib.parse.quote(app_id))
+    data = _fetch_json(url)
+    if "error" in data:
+        return data
+    app_data = data.get(app_id, {})
+    if not app_data.get("success"):
+        return {"error": "Failed to fetch details for app ID: %s" % app_id}
+    info = app_data.get("data", {})
+    result = {
+        "app_id": app_id,
+        "name": info.get("name", ""),
+        "type": info.get("type", ""),
+        "is_free": info.get("is_free", False),
+        "short_description": info.get("short_description", ""),
+        "developers": info.get("developers", []),
+        "publishers": info.get("publishers", []),
+        "genres": [g.get("description", "") for g in info.get("genres", [])],
+        "categories": [c.get("description", "") for c in info.get("categories", [])],
+        "url": "https://store.steampowered.com/app/%s" % app_id
+    }
+    if info.get("release_date"):
+        result["release_date"] = info["release_date"].get("date", "")
+        result["coming_soon"] = info["release_date"].get("coming_soon", False)
+    if info.get("metacritic"):
+        result["metacritic_score"] = info["metacritic"].get("score")
+        result["metacritic_url"] = info["metacritic"].get("url", "")
+    if info.get("recommendations"):
+        result["total_recommendations"] = info["recommendations"].get("total", 0)
+    if info.get("price_overview"):
+        price = info["price_overview"]
+        result["price"] = price.get("final_formatted", "")
+        if price.get("discount_percent"):
+            result["discount_percent"] = price["discount_percent"]
+    if info.get("platforms"):
+        result["platforms"] = info["platforms"]
+    if info.get("controller_support"):
+        result["controller_support"] = info["controller_support"]
+    if info.get("dlc"):
+        result["dlc_count"] = len(info["dlc"])
+    if info.get("supported_languages"):
+        langs = info["supported_languages"]
+        langs = re.sub(r'<[^>]+>', '', langs)
+        result["supported_languages"] = langs
+    return result
+
+
 def steam_reviews(app_id: str, num_reviews: int = 100, filter: str = "all"):
     """Fetch Steam reviews for a game by app ID.
     
