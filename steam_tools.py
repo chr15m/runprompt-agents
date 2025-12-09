@@ -53,6 +53,8 @@ def steam_search(query: str):
         results.append(result)
     return {"query": query, "total": data.get("total", 0), "results": results}
 
+steam_search.safe = True
+
 
 def steam_app_details(app_id: str):
     """Get detailed information about a Steam game by app ID.
@@ -108,6 +110,8 @@ def steam_app_details(app_id: str):
         result["supported_languages"] = langs
     return result
 
+steam_app_details.safe = True
+
 
 def steam_reviews(app_id: str, num_reviews: int = 100, filter: str = "all"):
     """Fetch Steam reviews for a game by app ID.
@@ -156,3 +160,5 @@ def steam_reviews(app_id: str, num_reviews: int = 100, filter: str = "all"):
             "text": review_text
         })
     return result
+
+steam_reviews.safe = True

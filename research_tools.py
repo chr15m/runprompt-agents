@@ -145,6 +145,8 @@ def duckduckgo_instant(query: str):
         result["note"] = "No instant answer available. Try wikipedia_search or fetch_url for more detailed results."
     return result
 
+duckduckgo_instant.safe = True
+
 
 def wikipedia_search(query: str):
     """Search Wikipedia for articles matching a query.
@@ -166,6 +168,8 @@ def wikipedia_search(query: str):
             "url": "https://en.wikipedia.org/wiki/%s" % urllib.parse.quote(item.get("title", "").replace(" ", "_"))
         })
     return {"query": query, "results": results}
+
+wikipedia_search.safe = True
 
 
 def wikipedia_article(title: str):
@@ -192,6 +196,8 @@ def wikipedia_article(title: str):
             break
     return result
 
+wikipedia_article.safe = True
+
 
 def github_search(query: str):
     """Search GitHub repositories.
@@ -215,6 +221,8 @@ def github_search(query: str):
             "updated": repo.get("updated_at", "")[:10]
         })
     return {"query": query, "total_count": data.get("total_count", 0), "results": results}
+
+github_search.safe = True
 
 
 def github_repo(owner: str, repo: str):
@@ -252,6 +260,8 @@ def github_repo(owner: str, repo: str):
                 pass
     return result
 
+github_repo.safe = True
+
 
 def hackernews_search(query: str):
     """Search Hacker News for stories and discussions.
@@ -277,6 +287,8 @@ def hackernews_search(query: str):
         })
     results = [r for r in results if r["title"]]
     return {"query": query, "results": results}
+
+hackernews_search.safe = True
 
 
 def reddit_search(query: str, subreddit: str = ""):
@@ -307,6 +319,8 @@ def reddit_search(query: str, subreddit: str = ""):
         })
     return {"query": query, "subreddit": subreddit or "all", "results": results}
 
+reddit_search.safe = True
+
 
 def open_library_search(query: str):
     """Search Open Library for books.
@@ -331,6 +345,8 @@ def open_library_search(query: str):
         })
     return {"query": query, "total_count": data.get("numFound", 0), "results": results}
 
+open_library_search.safe = True
+
 
 def wikidata_search(query: str):
     """Search Wikidata for structured knowledge.
@@ -352,6 +368,8 @@ def wikidata_search(query: str):
             "url": item.get("concepturi", "")
         })
     return {"query": query, "results": results}
+
+wikidata_search.safe = True
 
 
 def openalex_search(query: str):
@@ -399,6 +417,8 @@ def openalex_search(query: str):
         "results": results
     }
 
+openalex_search.safe = True
+
 
 def arxiv_search(query: str):
     """Search arXiv for preprints in physics, math, CS, and related fields.
@@ -442,6 +462,8 @@ def arxiv_search(query: str):
             "categories": categories[:5]
         })
     return {"query": query, "results": results}
+
+arxiv_search.safe = True
 
 
 def pubmed_search(query: str):
@@ -514,6 +536,8 @@ def pubmed_search(query: str):
         "results": results
     }
 
+pubmed_search.safe = True
+
 
 def crossref_search(query: str):
     """Search Crossref for DOI metadata and scholarly publications.
@@ -563,6 +587,8 @@ def crossref_search(query: str):
         "results": results
     }
 
+crossref_search.safe = True
+
 
 def fetch_url(url: str):
     """Fetch any URL and return its content as plain text.
@@ -575,3 +601,5 @@ def fetch_url(url: str):
         url = 'https://' + url
     text = _fetch_text(url)
     return {"url": url, "content": _truncate(text)}
+
+fetch_url.safe = True
