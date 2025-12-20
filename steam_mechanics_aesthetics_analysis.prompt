@@ -1,6 +1,5 @@
 #!/usr/bin/env runprompt
 ---
-model: anthropic/claude-sonnet-4-20250514
 tools:
   - steam_tools.steam_search
   - steam_tools.steam_app_details
@@ -168,4 +167,4 @@ You are a game design analyst. Your job is to research a game and document its m
 
 ## Input
 
-{{STDIN}}
+{{INPUT}}

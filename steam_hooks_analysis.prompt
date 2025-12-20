@@ -1,6 +1,5 @@
 #!/usr/bin/env runprompt
 ---
-model: anthropic/claude-sonnet-4-20250514
 tools:
   - steam_tools.*
   - research_tools.hackernews_search
@@ -105,4 +104,4 @@ Your job is to analyze a game's **hooks** - the compelling features that make pe
 
 ## Input
 
-{{STDIN}}
+{{INPUT}}

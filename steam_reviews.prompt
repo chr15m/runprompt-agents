@@ -1,6 +1,5 @@
 #!/usr/bin/env runprompt
 ---
-model: anthropic/claude-sonnet-4-20250514
 tools:
   - steam_tools.steam_search
   - steam_tools.steam_reviews
@@ -59,3 +58,4 @@ Based on [N] reviews ([X]% positive)
 ## Input
 
 {{STDIN}}
+{{INPUT}}
