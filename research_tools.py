@@ -7,8 +7,8 @@ import json
 import re
 from html.parser import HTMLParser
 
-MAX_CONTENT_LENGTH = 8000
-MAX_ITEMS = 10
+MAX_CONTENT_LENGTH = 50000
+MAX_ITEMS = 25
 TIMEOUT = 30
 
 
@@ -70,10 +70,12 @@ def _html_to_text(html):
 
 
 def _truncate(text, max_len=MAX_CONTENT_LENGTH):
-    """Truncate text to max length with indicator."""
+    """Truncate text to max length, keeping start and end."""
     if len(text) <= max_len:
         return text
-    return text[:max_len] + "\n\n[... truncated, %d more characters ...]" % (len(text) - max_len)
+    half = max_len // 2
+    removed = len(text) - max_len
+    return text[:half] + "\n\n... [ TRUNCATED %d CHARACTERS ] ...\n\n" % removed + text[-half:]
 
 
 def _fetch_json(url, headers=None):
@@ -399,8 +401,12 @@ def openalex_search(query: str):
             "doi": work.get("doi", ""),
             "open_access": work.get("open_access", {}).get("is_oa", False),
         }
-        if work.get("primary_location", {}).get("source", {}).get("display_name"):
-            result["journal"] = work["primary_location"]["source"]["display_name"]
+        primary_location = work.get("primary_location")
+        source = primary_location.get("source") if primary_location else None
+        print("DEBUG openalex primary_location:", primary_location)
+        print("DEBUG openalex source:", source)
+        if source and source.get("display_name"):
+            result["journal"] = source["display_name"]
         if work.get("open_access", {}).get("oa_url"):
             result["pdf_url"] = work["open_access"]["oa_url"]
         abstract = work.get("abstract_inverted_index")
