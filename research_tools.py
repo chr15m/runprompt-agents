@@ -403,8 +403,6 @@ def openalex_search(query: str):
         }
         primary_location = work.get("primary_location")
         source = primary_location.get("source") if primary_location else None
-        print("DEBUG openalex primary_location:", primary_location)
-        print("DEBUG openalex source:", source)
         if source and source.get("display_name"):
             result["journal"] = source["display_name"]
         if work.get("open_access", {}).get("oa_url"):
