@@ -4,6 +4,7 @@ tools:
   - steam_tools.steam_search
   - steam_tools.steam_app_details
   - steam_tools.steam_reviews
+  - builtin.fetch_clean
   - research_tools.wikipedia_search
   - research_tools.wikipedia_article
   - research_tools.duckduckgo_instant

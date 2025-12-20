@@ -2,6 +2,7 @@
 ---
 tools:
   - steam_tools.*
+  - builtin.fetch_clean
   - research_tools.hackernews_search
   - research_tools.reddit_search
   - research_tools.duckduckgo_instant

@@ -2,6 +2,7 @@
 ---
 tools:
   - research_tools.*
+  - builtin.datetime
   - builtin.fetch_clean
   - builtin.write_file("REPORT.md")
 ---
