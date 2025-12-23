@@ -57,13 +57,18 @@ Definitions (Sales Safari evidence buckets):
   services, courses, agencies, contractors, budgets, procurement signals.
 
 Evidence rules:
+- Collect ALL relevant quotes you find. Do not discard quotes for brevity.
 - Every claim should have a quote or a statistic next to it when possible.
-- Include the quote inline near the claim, AND also include it in the final
-  "Quotes" section.
 - Keep quotes short (1-3 sentences). Preserve original wording.
 - Every quote must include a URL.
 - If a quote is from a discussion page, include enough context to understand
   who is speaking (e.g. "Reddit post author", "HN commenter") when possible.
+- When available, note relevant context alongside quotes:
+  - Location/market (infer from currency, place names, subreddit, explicit mention)
+  - Business size (solo, small team, multi-location)
+  - Role (owner, manager, employee, customer)
+  - Other relevant demographic signals
+  Do NOT fabricate context—only include what is evident from the source.
 
 Operational steps:
 1) Determine which input type this is (audience vs product idea/category).
@@ -122,11 +127,24 @@ Output format (Markdown):
 
 # Sales Safari Report: [Input]
 
-- Date: [ISO date from datetime()]
-- Input type: [Audience | Product idea | Vague category]
-- Interpretation: [1-2 sentences]
+## 📊 Executive Summary
+- **Date:** [ISO date from datetime()]
+- **Input type:** [Audience | Product idea | Vague category]
+- **Interpretation:** [1-2 sentences]
+- **Sources analyzed:** [N] URLs across [N] communities
+- **Quotes collected:** [N] total
 
-## Discovery (watering holes & sites)
+### 🔑 Top Takeaways
+1. ✅ [Most validated finding with tally] — e.g. "Delivery app fees crushing margins (12 mentions)"
+2. ✅ [Second most validated finding with tally]
+3. ✅ [Third finding]
+4. ⚠️ [Notable minority signal or emerging pattern]
+5. ❌ [Gap or unmet need with no current solution]
+
+---
+
+## 🗺️ Discovery (watering holes & sites)
+
 ### Candidate Subreddits / Communities
 - [name/link] — why it seems relevant (1 sentence)
 - ...
@@ -135,45 +153,119 @@ Output format (Markdown):
 - [name/link] — why it seems relevant (1 sentence)
 - ...
 
-## Candidate Audiences (only if input is product idea or vague category)
+---
+
+## 👥 Candidate Audiences (only if input is product idea or vague category)
 - [Audience 1] — why plausible (1 sentence)
 - [Audience 2] — why plausible
 - ...
 
-## Evidence Summary (high signal)
-### Needs
-- **[Need statement]**
-  - Evidence: "[quote]" — [source label](URL)
-- ...
+---
 
-### Wants
-- **[Want statement]**
-  - Evidence: "[quote]" — [source label](URL)
-- ...
+## 📋 Evidence Summary (by theme)
 
-### Buys (proof of spend / substitutes)
-- **[Buy/switch/spend signal]**
-  - Evidence: "[quote]" — [source label](URL)
-- ...
+For each theme, show: tally, one representative quote, then "See full evidence below."
 
-## Felt Needs (synthesized)
+### 😫 Needs (pains, problems, constraints)
+
+#### [Need theme 1] — [N] mentions
+> "[Short representative quote]" (source e.g. @user on /r/sub)
+
+[1-sentence synthesis of this need]
+
+#### [Need theme 2] — [N] mentions
+> "[Short representative quote]" — (source e.g. someone on somewebsite)
+
+[1-sentence synthesis]
+
+...
+
+### 🌟 Wants (desires, aspirations, preferences)
+
+#### [Want theme 1] — [N] mentions
+> "[Short representative quote]" — (source e.g. @user on /r/sub)
+
+[1-sentence synthesis]
+
+...
+
+### 💰 Buys (proof of spend, tools, substitutes)
+
+#### [Buy/tool/service theme 1] — [N] mentions
+> "[Short representative quote]" — (source e.g. @user on /r/sub)
+
+[1-sentence synthesis]
+
+...
+
+---
+
+## 💡 Felt Needs (synthesized)
 A short paragraph (3-6 sentences) describing the most "felt" needs,
-with references to the strongest evidence above.
+with references to the strongest evidence above. Use specific numbers
+(e.g. "7 of 12 owners mentioned...").
 
-## Quotes (verbatim)
-- "[quote]" — [source label](URL)
+---
+
+## 🗣️ Voice & Language (how they speak)
+
+Capture the jargon, phrases, and communication style of this audience.
+This helps with copywriting, marketing, and product positioning.
+
+### Industry Jargon / Terms
+- **[term]** — meaning/context if not obvious
 - ...
 
-## Sources (deduped)
+### Common Phrases & Expressions
+- "[phrase]" — [context where used]
+- ...
+
+### Emotional Language (how they express frustration/desire)
+- "[quote showing emotional tone]" — [source](URL)
+- ...
+
+---
+
+## 📚 Full Evidence (all quotes)
+
+### Needs — Full Quotes
+
+#### [Need theme 1]
+- "[Full quote]" — [source label](URL) [📍 Location if known] [👤 Role if known]
+- "[Full quote]" — [source label](URL)
+- ...
+
+#### [Need theme 2]
+- ...
+
+### Wants — Full Quotes
+
+#### [Want theme 1]
+- "[Full quote]" — [source label](URL) [📍 Location if known] [👤 Role if known]
+- ...
+
+### Buys — Full Quotes
+
+#### [Buy theme 1]
+- "[Full quote]" — [source label](URL) [📍 Location if known] [👤 Role if known]
+- ...
+
+---
+
+## 🔗 Sources (deduped)
 - [source label](URL)
 - ...
 
-## Next Searches (optional, concise)
+---
+
+## 🔍 Next Searches (optional, concise)
 - [query 1]
 - [query 2]
 - ...
 
-## Limitations
+---
+
+## ⚠️ Limitations
 - Bullet list of what you could not verify with quotes, missing data, or
   constraints encountered.
 
