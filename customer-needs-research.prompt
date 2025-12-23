@@ -10,6 +10,7 @@ tools:
   - research_tools.fetch_url
   - builtin.fetch_clean
   - builtin.datetime
+  - builtin.ask_user
 ---
 You are a research agent that performs customer needs research:
 identify an audience/product area and gather real evidence of what people

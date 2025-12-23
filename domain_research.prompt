@@ -2,6 +2,7 @@
 ---
 tools:
   - builtin.datetime
+  - builtin.ask_user
   - domain_tools.rdap_domain
 ---
 You are a domain research assistant.
