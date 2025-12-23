@@ -295,19 +295,28 @@ hackernews_search.safe = True
 
 def reddit_search(query: str, subreddit: str = ""):
     """Search Reddit for posts and discussions.
-    
-    Optionally filter by subreddit. Returns post titles, scores, and comment counts.
-    Good for finding community discussions and diverse opinions.
+
+    Optionally filter by subreddit. Returns LLM-friendly Markdown containing
+    the existing fields (title, subreddit, url, score, comments, selftext).
     """
     if subreddit:
-        url = "https://www.reddit.com/r/%s/search.json?q=%s&restrict_sr=1&limit=%d" % (
-            urllib.parse.quote(subreddit), urllib.parse.quote(query), MAX_ITEMS)
+        url = (
+            "https://www.reddit.com/r/%s/search.json?q=%s&restrict_sr=1&limit=%d"
+            % (
+                urllib.parse.quote(subreddit),
+                urllib.parse.quote(query),
+                MAX_ITEMS,
+            )
+        )
     else:
         url = "https://www.reddit.com/search.json?q=%s&limit=%d" % (
-            urllib.parse.quote(query), MAX_ITEMS)
+            urllib.parse.quote(query),
+            MAX_ITEMS,
+        )
     data = _fetch_json(url)
     if "error" in data:
         return data
+
     results = []
     for child in data.get("data", {}).get("children", []):
         post = child.get("data", {})
@@ -317,9 +326,47 @@ def reddit_search(query: str, subreddit: str = ""):
             "url": "https://reddit.com%s" % post.get("permalink", ""),
             "score": post.get("score", 0),
             "comments": post.get("num_comments", 0),
-            "selftext": _truncate(post.get("selftext", ""), 500) if post.get("selftext") else ""
+            "selftext": (
+                _truncate(post.get("selftext", ""), 500)
+                if post.get("selftext")
+                else ""
+            ),
         })
-    return {"query": query, "subreddit": subreddit or "all", "results": results}
+
+    lines = [
+        "# Reddit search",
+        "",
+        "Query: `%s`" % query,
+        "Subreddit: `%s`" % (subreddit or "all"),
+        "",
+        "URL: %s" % url,
+        "",
+    ]
+
+    if not results:
+        lines.append("_No results._")
+        return "\n".join(lines).rstrip()
+
+    lines.append("Results:")
+    lines.append("")
+
+    for i, item in enumerate(results, 1):
+        title = item.get("title", "") or ""
+        item_sub = item.get("subreddit", "") or (subreddit or "all")
+        item_url = item.get("url", "") or ""
+        score = item.get("score", 0)
+        comments = item.get("comments", 0)
+        selftext = item.get("selftext", "") or ""
+
+        lines.append("%d. r/%s — **%s**" % (i, item_sub, title))
+        lines.append("   Score: %s | Comments: %s" % (score, comments))
+        if item_url:
+            lines.append("   URL: %s" % item_url)
+        if selftext:
+            lines.append("   Selftext: %s" % selftext.replace("\n", " "))
+        lines.append("")
+
+    return "\n".join(lines).rstrip()
 
 reddit_search.safe = True
 

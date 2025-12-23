@@ -57,9 +57,9 @@ def reddit_list(subreddit: str,
       limit: Number of posts to return (max 100).
 
     Returns:
-      Dict containing subreddit, sort, t, and a list of posts with title,
-      url, permalink, score, comments, author, created, and truncated
-      selftext.
+      LLM-friendly Markdown containing the existing fields for each post:
+      title, subreddit, author, score, comments, created, url, permalink,
+      and truncated selftext.
     """
     subreddit = (subreddit or "").strip()
     if subreddit.lower().startswith("r/"):
@@ -117,14 +117,51 @@ def reddit_list(subreddit: str,
             "selftext": selftext,
         })
 
-    return {
-        "subreddit": subreddit,
-        "sort": sort,
-        "t": t if sort == "top" else "",
-        "limit": limit,
-        "posts": posts,
-        "url": url,
-    }
+    lines = [
+        "# Reddit listing",
+        "",
+        "Subreddit: `r/%s`" % subreddit,
+        "Sort: `%s`" % sort,
+        "Time window: `%s`" % t if sort == "top" else "Time window: ``",
+        "Limit: %d" % limit,
+        "",
+        "URL: %s" % url,
+        "",
+    ]
+
+    if not posts:
+        lines.append("_No posts._")
+        return "\n".join(lines).rstrip()
+
+    lines.append("Posts:")
+    lines.append("")
+
+    for i, post in enumerate(posts, 1):
+        title = post.get("title", "") or ""
+        author = post.get("author", "") or ""
+        score = post.get("score", 0)
+        comments = post.get("comments", 0)
+        created = post.get("created", "") or ""
+        post_url = post.get("url", "") or ""
+        permalink = post.get("permalink", "") or ""
+        selftext = post.get("selftext", "") or ""
+
+        lines.append("%d. **%s**" % (i, title))
+        lines.append(
+            "   Author: u/%s | Score: %s | Comments: %s"
+            % (author, score, comments)
+        )
+        if created:
+            lines.append("   Created: %s" % created)
+        if post_url:
+            lines.append("   URL: %s" % post_url)
+        if permalink:
+            lines.append("   Permalink: %s" % permalink)
+        if selftext:
+            lines.append("   Selftext: %s" % selftext.replace("\n", " "))
+        lines.append("")
+
+    return "\n".join(lines).rstrip()
 
 
 reddit_list.safe = True
