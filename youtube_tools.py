@@ -142,6 +142,15 @@ def youtube_feed_xml(
         "author": _text("atom:author/atom:name"),
     }
 
+    feed_link_el = root.find('atom:link[@rel="alternate"]', ns)
+    if feed_link_el is not None:
+        channel_url = feed_link_el.attrib.get("href", "") or ""
+        feed["channel_url"] = channel_url
+        parsed = urlparse(channel_url)
+        parts = [p for p in (parsed.path or "").split("/") if p]
+        if len(parts) >= 2 and parts[-2] == "channel":
+            feed["channel_id_uc"] = parts[-1]
+
     videos = []
     for entry in root.findall("atom:entry", ns)[:limit]:
         video_id = (entry.findtext("yt:videoId", default="", namespaces=ns) or "").strip()
@@ -177,6 +186,80 @@ def youtube_feed_xml(
 
 
 youtube_feed_xml.safe = True
+
+
+def youtube_channel_videos(
+    channel_id: str = "",
+    user: str = "",
+    limit: int = 200,
+) -> dict:
+    """List a channel's uploaded videos using scrapetube (no API key).
+
+    Args:
+      channel_id: A YouTube channel id (typically "UC...").
+      user: Legacy username. If provided, resolves a channel id via
+        youtube_feed_xml() and then uses that for scraping.
+      limit: Maximum number of videos to return (max 2000).
+
+    Returns:
+      A dict with:
+        - channel_id: the channel id used for scraping
+        - source: "scrapetube"
+        - videos: list of {video_id, url, title}
+        - error: string (when an error occurs)
+    """
+    channel_id = (channel_id or "").strip()
+    user = (user or "").strip()
+    if bool(channel_id) == bool(user):
+        return {"error": "Provide exactly one of: channel_id, user"}
+
+    limit = int(limit) if limit is not None else 200
+    limit = max(1, min(limit, 2000))
+
+    if user:
+        feed = youtube_feed_xml(user=user, limit=1)
+        if isinstance(feed, dict) and feed.get("error"):
+            return {"error": feed.get("error", "Failed to fetch feed")}
+        channel_id = (
+            ((feed.get("feed") or {}).get("channel_id_uc") or "").strip()
+            or ((feed.get("feed") or {}).get("channel_id") or "").strip()
+        )
+        if not channel_id:
+            return {"error": "Could not resolve channel_id from feed"}
+
+    try:
+        import scrapetube
+    except Exception as e:
+        return {"error": "Failed to import scrapetube: %s" % repr(e)}
+
+    videos = []
+    try:
+        for v in scrapetube.get_channel(channel_id):
+            video_id = (v.get("videoId") or v.get("video_id") or "").strip()
+            if not video_id:
+                continue
+
+            title = (v.get("title") or "").strip()
+            videos.append(
+                {
+                    "video_id": video_id,
+                    "url": "https://www.youtube.com/watch?v=%s" % video_id,
+                    "title": _truncate(title, 200),
+                }
+            )
+            if len(videos) >= limit:
+                break
+    except Exception as e:
+        return {
+            "channel_id": channel_id,
+            "source": "scrapetube",
+            "error": repr(e),
+        }
+
+    return {"channel_id": channel_id, "source": "scrapetube", "videos": videos}
+
+
+youtube_channel_videos.safe = True
 
 
 def youtube_transcript(url_or_id: str) -> dict:
