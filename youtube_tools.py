@@ -1,4 +1,9 @@
 import re
+import urllib.error
+import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
+from html import unescape
 from urllib.parse import parse_qs, urlparse
 
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -43,11 +48,135 @@ def _extract_video_id(url_or_id: str) -> str:
             return vid
 
     # Fallback: find an 11-char id-like substring anywhere in the input.
-    m = re.search(r"(?<![A-Za-z0-9_-])([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])", s)
+    m = re.search(
+        r"(?<![A-Za-z0-9_-])([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])",
+        s,
+    )
     if m:
         return m.group(1)
 
     raise ValueError("Could not extract a YouTube video id from input")
+
+
+def _truncate(text: str, max_len: int) -> str:
+    text = text or ""
+    if len(text) <= max_len:
+        return text
+    return text[:max_len] + "…"
+
+
+def youtube_feed_xml(
+    user: str = "",
+    channel_id: str = "",
+    limit: int = 25,
+) -> dict:
+    """Fetch YouTube's public Atom feed (videos.xml) and return a concise list.
+
+    Args:
+      user: Legacy YouTube username (e.g. "mccormix").
+      channel_id: YouTube channel id (typically "UC..." style).
+      limit: Maximum number of entries to return.
+
+    Returns:
+      A dict with:
+        - url: the feed URL requested
+        - feed: metadata (id, channel_id, title, author)
+        - videos: list of entries with video_id, title, url, published, updated,
+          views, thumbnail, description (truncated)
+        - error: string (when an error occurs)
+    """
+    user = (user or "").strip()
+    channel_id = (channel_id or "").strip()
+    if bool(user) == bool(channel_id):
+        return {"error": "Provide exactly one of: user, channel_id"}
+
+    limit = int(limit) if limit is not None else 25
+    limit = max(1, min(limit, 100))
+
+    params = {"user": user} if user else {"channel_id": channel_id}
+    url = "https://www.youtube.com/feeds/videos.xml?%s" % (
+        urllib.parse.urlencode(params),
+    )
+
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/atom+xml, application/xml, text/xml, */*",
+            "User-Agent": "runprompt-youtube-tools/1.0",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            raw = resp.read()
+    except urllib.error.HTTPError as e:
+        return {"url": url, "error": "HTTPError: %s %s" % (e.code, e.reason)}
+    except urllib.error.URLError as e:
+        return {"url": url, "error": "URLError: %s" % str(e.reason)}
+    except Exception as e:
+        return {"url": url, "error": repr(e)}
+
+    xml_text = raw.decode("utf-8", errors="replace")
+
+    ns = {
+        "atom": "http://www.w3.org/2005/Atom",
+        "yt": "http://www.youtube.com/xml/schemas/2015",
+        "media": "http://search.yahoo.com/mrss/",
+    }
+
+    try:
+        root = ET.fromstring(xml_text)
+    except Exception as e:
+        return {"url": url, "error": "XML parse error: %s" % repr(e)}
+
+    def _text(path: str) -> str:
+        el = root.find(path, ns)
+        if el is None or el.text is None:
+            return ""
+        return unescape(el.text.strip())
+
+    feed = {
+        "id": _text("atom:id"),
+        "channel_id": _text("yt:channelId"),
+        "title": _text("atom:title"),
+        "author": _text("atom:author/atom:name"),
+    }
+
+    videos = []
+    for entry in root.findall("atom:entry", ns)[:limit]:
+        video_id = (entry.findtext("yt:videoId", default="", namespaces=ns) or "").strip()
+        title = (entry.findtext("atom:title", default="", namespaces=ns) or "").strip()
+        published = (
+            entry.findtext("atom:published", default="", namespaces=ns) or ""
+        ).strip()
+        updated = (entry.findtext("atom:updated", default="", namespaces=ns) or "").strip()
+
+        link_el = entry.find('atom:link[@rel="alternate"]', ns)
+        video_url = link_el.attrib.get("href", "") if link_el is not None else ""
+
+        desc = (entry.findtext("media:group/media:description", default="", namespaces=ns) or "").strip()
+        thumb_el = entry.find("media:group/media:thumbnail", ns)
+        thumbnail = thumb_el.attrib.get("url", "") if thumb_el is not None else ""
+        stats_el = entry.find("media:group/media:community/media:statistics", ns)
+        views = stats_el.attrib.get("views", "") if stats_el is not None else ""
+
+        videos.append(
+            {
+                "video_id": video_id,
+                "title": unescape(title),
+                "url": video_url,
+                "published": published,
+                "updated": updated,
+                "views": views,
+                "thumbnail": thumbnail,
+                "description": _truncate(unescape(desc), 280),
+            }
+        )
+
+    return {"url": url, "feed": feed, "videos": videos}
+
+
+youtube_feed_xml.safe = True
 
 
 def youtube_transcript(url_or_id: str) -> dict:
