@@ -1,3 +1,4 @@
+import json
 import re
 import urllib.error
 import urllib.parse
@@ -260,6 +261,153 @@ def youtube_channel_videos(
 
 
 youtube_channel_videos.safe = True
+
+
+def _youtube_watch_url(video_id: str) -> str:
+    return "https://www.youtube.com/watch?v=%s" % video_id
+
+
+def _to_iso_date(value) -> str:
+    if value is None:
+        return ""
+    try:
+        return value.isoformat()
+    except Exception:
+        return str(value)
+
+
+def youtube_oembed(url_or_id: str) -> dict:
+    """Fetch YouTube metadata via the public oEmbed endpoint (no API key).
+
+    Args:
+      url_or_id: A YouTube URL (watch/youtu.be/shorts/embed) or a raw
+        11-character video id.
+
+    Returns:
+      A dict with:
+        - video_id: The extracted id
+        - video_url: Normalized watch URL
+        - oembed_url: The requested oEmbed URL
+        - oembed: Parsed oEmbed JSON response (when successful)
+        - error: string (when an error occurs)
+    """
+    video_id = _extract_video_id(url_or_id)
+    video_url = _youtube_watch_url(video_id)
+
+    qs = urllib.parse.urlencode({"url": video_url, "format": "json"})
+    oembed_url = "https://www.youtube.com/oembed?%s" % qs
+
+    req = urllib.request.Request(
+        oembed_url,
+        headers={
+            "Accept": "application/json, */*",
+            "User-Agent": "runprompt-youtube-tools/1.0",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            raw = resp.read()
+    except urllib.error.HTTPError as e:
+        return {
+            "video_id": video_id,
+            "video_url": video_url,
+            "oembed_url": oembed_url,
+            "error": "HTTPError: %s %s" % (e.code, e.reason),
+        }
+    except urllib.error.URLError as e:
+        return {
+            "video_id": video_id,
+            "video_url": video_url,
+            "oembed_url": oembed_url,
+            "error": "URLError: %s" % str(e.reason),
+        }
+    except Exception as e:
+        return {
+            "video_id": video_id,
+            "video_url": video_url,
+            "oembed_url": oembed_url,
+            "error": repr(e),
+        }
+
+    text = raw.decode("utf-8", errors="replace")
+    try:
+        parsed = json.loads(text)
+    except Exception as e:
+        return {
+            "video_id": video_id,
+            "video_url": video_url,
+            "oembed_url": oembed_url,
+            "error": "JSON parse error: %s" % repr(e),
+            "raw": _truncate(text, 2000),
+        }
+
+    return {
+        "video_id": video_id,
+        "video_url": video_url,
+        "oembed_url": oembed_url,
+        "oembed": parsed,
+    }
+
+
+youtube_oembed.safe = True
+
+
+def youtube_metadata_pytube(url_or_id: str) -> dict:
+    """Fetch YouTube metadata via pytube (no API key).
+
+    Args:
+      url_or_id: A YouTube URL (watch/youtu.be/shorts/embed) or a raw
+        11-character video id.
+
+    Returns:
+      A dict with:
+        - video_id: The extracted id
+        - video_url: Normalized watch URL
+        - metadata: A small subset of fields from pytube's YouTube object
+        - error: string (when an error occurs)
+    """
+    video_id = _extract_video_id(url_or_id)
+    video_url = _youtube_watch_url(video_id)
+
+    try:
+        from pytube import YouTube
+    except Exception as e:
+        return {"error": "Failed to import pytube: %s" % repr(e)}
+
+    try:
+        yt = YouTube(video_url)
+    except Exception as e:
+        return {
+            "video_id": video_id,
+            "video_url": video_url,
+            "error": repr(e),
+        }
+
+    metadata = {
+        "title": getattr(yt, "title", "") or "",
+        "author": getattr(yt, "author", "") or "",
+        "channel_id": getattr(yt, "channel_id", "") or "",
+        "channel_url": getattr(yt, "channel_url", "") or "",
+        "thumbnail_url": getattr(yt, "thumbnail_url", "") or "",
+        "length_seconds": getattr(yt, "length", None),
+        "views": getattr(yt, "views", None),
+        "publish_date": _to_iso_date(getattr(yt, "publish_date", None)),
+        "description": getattr(yt, "description", "") or "",
+        "keywords": getattr(yt, "keywords", None),
+    }
+
+    if isinstance(metadata.get("description"), str):
+        metadata["description"] = _truncate(metadata["description"], 2000)
+
+    return {
+        "video_id": video_id,
+        "video_url": video_url,
+        "metadata": metadata,
+    }
+
+
+youtube_metadata_pytube.safe = True
 
 
 def youtube_transcript(url_or_id: str) -> dict:
