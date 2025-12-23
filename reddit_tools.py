@@ -165,3 +165,149 @@ def reddit_list(subreddit: str,
 
 
 reddit_list.safe = True
+
+
+def reddit_comments(permalink_or_url: str,
+                   sort: str = "top",
+                   limit: int = MAX_ITEMS):
+    """Fetch comments for a Reddit post.
+
+    Args:
+      permalink_or_url: A Reddit post permalink (e.g. "/r/foo/comments/abc123/x/")
+        or a full URL (e.g. "https://www.reddit.com/r/foo/comments/abc123/x/").
+      sort: One of "confidence", "top", "new", "controversial", "old", "qa".
+      limit: Maximum number of comments to include (max 100).
+
+    Returns:
+      LLM-friendly Markdown with a flattened list of comments (including nested
+      replies), retaining these fields per comment: author, score, created,
+      permalink, depth, and truncated body.
+    """
+    permalink_or_url = (permalink_or_url or "").strip()
+    if not permalink_or_url:
+        return {"error": "permalink_or_url is required"}
+
+    if permalink_or_url.startswith(("http://", "https://")):
+        parsed = urllib.parse.urlparse(permalink_or_url)
+        path = parsed.path or ""
+    else:
+        path = permalink_or_url
+
+    path = path.strip()
+    if not path.startswith("/"):
+        path = "/" + path
+    if not path.startswith("/r/"):
+        return {"error": "Expected a Reddit post permalink or URL"}
+
+    sort = (sort or "top").strip().lower()
+    allowed_sorts = {
+        "confidence",
+        "top",
+        "new",
+        "controversial",
+        "old",
+        "qa",
+    }
+    if sort not in allowed_sorts:
+        return {"error": "Invalid sort: %s" % sort}
+
+    limit = int(limit) if limit is not None else MAX_ITEMS
+    limit = max(1, min(limit, 100))
+
+    qs = {
+        "raw_json": "1",
+        "sort": sort,
+        "limit": str(limit),
+    }
+    url = "https://www.reddit.com%s.json?%s" % (
+        path.rstrip("/"),
+        urllib.parse.urlencode(qs),
+    )
+
+    listing = _fetch_json(url)
+    if "error" in listing:
+        return listing
+    if not isinstance(listing, list) or len(listing) < 2:
+        return {"error": "Unexpected response format from Reddit"}
+
+    def _walk(children, depth=0):
+        for child in children:
+            if (child or {}).get("kind") != "t1":
+                continue
+            c = (child or {}).get("data", {}) or {}
+            body = c.get("body", "") or ""
+            if len(body) > 500:
+                body = body[:500] + "…"
+            comment = {
+                "author": c.get("author", "") or "",
+                "score": c.get("score", 0),
+                "created": _to_iso8601(c.get("created_utc")),
+                "permalink": (
+                    "https://reddit.com%s" % c.get("permalink", "")
+                    if c.get("permalink")
+                    else ""
+                ),
+                "depth": depth,
+                "body": body,
+            }
+            yield comment
+
+            replies = c.get("replies")
+            if isinstance(replies, dict):
+                reply_children = replies.get("data", {}).get("children", [])
+                yield from _walk(reply_children, depth=depth + 1)
+
+    comment_children = (listing[1] or {}).get("data", {}).get("children", [])
+    comments = []
+    for item in _walk(comment_children, depth=0):
+        comments.append(item)
+        if len(comments) >= limit:
+            break
+
+    lines = [
+        "# Reddit comments",
+        "",
+        "Post: %s" % ("https://reddit.com%s" % path.rstrip("/")),
+        "Sort: `%s`" % sort,
+        "Limit: %d" % limit,
+        "",
+        "URL: %s" % url,
+        "",
+    ]
+
+    if not comments:
+        lines.append("_No comments._")
+        return "\n".join(lines).rstrip()
+
+    lines.append("Comments:")
+    lines.append("")
+
+    for i, c in enumerate(comments, 1):
+        author = c.get("author", "") or ""
+        score = c.get("score", 0)
+        created = c.get("created", "") or ""
+        permalink = c.get("permalink", "") or ""
+        depth = c.get("depth", 0) or 0
+        body = c.get("body", "") or ""
+
+        indent = "  " * int(depth)
+        lines.append(
+            "%s%d. u/%s | Score: %s%s"
+            % (
+                indent,
+                i,
+                author,
+                score,
+                " | Created: %s" % created if created else "",
+            )
+        )
+        if permalink:
+            lines.append("%s   Permalink: %s" % (indent, permalink))
+        if body:
+            lines.append("%s   Body: %s" % (indent, body.replace("\n", " ")))
+        lines.append("")
+
+    return "\n".join(lines).rstrip()
+
+
+reddit_comments.safe = True
