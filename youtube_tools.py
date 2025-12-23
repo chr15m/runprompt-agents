@@ -240,7 +240,17 @@ def youtube_channel_videos(
             if not video_id:
                 continue
 
-            title = (v.get("title") or "").strip()
+            raw_title = v.get("title") or ""
+            if isinstance(raw_title, dict):
+                runs = raw_title.get("runs")
+                if isinstance(runs, list) and runs:
+                    raw_title = "".join((r.get("text") or "") for r in runs)
+                else:
+                    raw_title = raw_title.get("simpleText") or ""
+            elif isinstance(raw_title, list):
+                raw_title = "".join(str(x) for x in raw_title)
+            title = str(raw_title).strip()
+
             videos.append(
                 {
                     "video_id": video_id,
