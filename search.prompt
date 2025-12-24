@@ -7,6 +7,7 @@ tools:
   - research_tools.hackernews_search
   - research_tools.reddit_search
   - research_tools.fetch_url
+  - builtin.fetch_clean
   - builtin.datetime
 ---
 You are a quick-answer assistant. Your goal is to find a concise, accurate answer to a simple question.

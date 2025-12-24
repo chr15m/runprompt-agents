@@ -4,9 +4,13 @@ tools:
   - research_tools.duckduckgo_instant
   - research_tools.wikipedia_search
   - research_tools.wikipedia_article
+  - research_tools.wikidata_search
+  - research_tools.openalex_search
+  - research_tools.crossref_search
+  - research_tools.open_library_search
   - research_tools.hackernews_search
   - research_tools.reddit_search
-  - reddit_tools.reddit_list
+  - reddit_tools.*
   - research_tools.fetch_url
   - builtin.fetch_clean
   - builtin.datetime

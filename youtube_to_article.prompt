@@ -1,6 +1,7 @@
 #!/usr/bin/env runprompt
 ---
 tools:
+  - youtube_tools.youtube_oembed
   - youtube_tools.youtube_transcript
 ---
 You are a transcription-to-article converter.
