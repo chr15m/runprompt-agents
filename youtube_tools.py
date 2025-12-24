@@ -420,18 +420,29 @@ def youtube_metadata_pytube(url_or_id: str) -> dict:
 youtube_metadata_pytube.safe = True
 
 
-def youtube_transcript(url_or_id: str) -> dict:
+def youtube_transcript(url_or_id: str, prepend_timestamps: bool = False) -> dict:
     """Fetch a YouTube transcript via youtube-transcript-api.
 
     Args:
       url_or_id: A YouTube URL (watch/youtu.be/shorts/embed) or a raw
         11-character video id.
+      prepend_timestamps: If True, prefix each line with [HH:MM:SS] based on
+        the transcript item's start time.
 
     Returns:
       A dict with:
         - video_id: The extracted id
         - transcript: Plain text transcript with lightweight line breaks
     """
+    def _format_hhmmss(seconds) -> str:
+        try:
+            total = int(float(seconds or 0))
+        except Exception:
+            total = 0
+        hours, rem = divmod(total, 3600)
+        minutes, secs = divmod(rem, 60)
+        return "%02d:%02d:%02d" % (hours, minutes, secs)
+
     video_id = _extract_video_id(url_or_id)
 
     # Support multiple youtube_transcript_api versions.
@@ -462,10 +473,16 @@ def youtube_transcript(url_or_id: str) -> dict:
     for item in items:
         if isinstance(item, dict):
             text = item.get("text", "")
+            start = item.get("start", 0)
         else:
             text = getattr(item, "text", "")
+            start = getattr(item, "start", 0)
         text = (text or "").strip()
-        if text:
+        if not text:
+            continue
+        if prepend_timestamps:
+            lines.append("[%s] %s" % (_format_hhmmss(start), text))
+        else:
             lines.append(text)
 
     return {"video_id": video_id, "transcript": "\n".join(lines)}
