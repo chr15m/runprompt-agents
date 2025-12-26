@@ -5,6 +5,7 @@ import urllib.parse
 import urllib.error
 import json
 import re
+from html import unescape
 from html.parser import HTMLParser
 
 MAX_CONTENT_LENGTH = 50000
@@ -515,6 +516,197 @@ def arxiv_search(query: str):
     return {"query": query, "results": results}
 
 arxiv_search.safe = True
+
+
+def _scholar_strip_tags(html: str) -> str:
+    """Remove HTML tags, keeping text."""
+    text = re.sub(r"<br\s*/?>", " ", html)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return unescape(text.strip())
+
+
+def _scholar_abs_url(href: str) -> str:
+    """Convert relative Scholar URL to absolute."""
+    if not href:
+        return ""
+    if href.startswith("http"):
+        return href
+    if href.startswith("/"):
+        return "https://scholar.google.com" + href
+    return href
+
+
+def google_scholar_search(query: str):
+    """Search Google Scholar and return results as Markdown.
+
+    Returns an LLM-friendly Markdown summary with titles, URLs, authors,
+    snippets, PDF links, and citation counts. Useful for finding academic
+    papers and research on a topic.
+
+    Note: Google Scholar may block automated requests. If results look
+    like a captcha or error page, try again later or use a different
+    search tool like openalex_search or pubmed_search.
+    """
+    query = (query or "").strip()
+    if not query:
+        return "Error: query is required"
+
+    url = "https://scholar.google.com/scholar?%s" % urllib.parse.urlencode(
+        {
+            "q": query,
+            "hl": "en",
+            "num": str(MAX_ITEMS),
+        }
+    )
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept": (
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+        ),
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        return "Error: HTTP %d %s\nURL: %s" % (e.code, e.reason, url)
+    except urllib.error.URLError as e:
+        return "Error: %s\nURL: %s" % (e.reason, url)
+
+    if "unusual traffic" in html.lower() or "not a robot" in html.lower():
+        return (
+            "# Google Scholar search\n\n"
+            "Query: `%s`\n"
+            "URL: %s\n\n"
+            "_Blocked: Google Scholar detected automated traffic. "
+            "Try again later or use openalex_search/pubmed_search._"
+        ) % (query, url)
+
+    count_match = re.search(r"About ([\d,]+) results", html)
+    result_count = count_match.group(1) if count_match else ""
+
+    results = []
+    block_starts = [
+        m.start()
+        for m in re.finditer(
+            (
+                r'<div class="gs_r gs_or gs_scl"[^>]*'
+                r'data-cid="[^"]*"'
+            ),
+            html,
+        )
+    ]
+    for i, start in enumerate(block_starts):
+        end = block_starts[i + 1] if i + 1 < len(block_starts) else len(html)
+        block = html[start:end]
+
+        title_match = re.search(
+            (
+                r'<h3 class="gs_rt"[^>]*>.*?'
+                r'<a[^>]+href="([^"]+)"[^>]*>(.+?)</a>'
+            ),
+            block,
+            re.DOTALL,
+        )
+        if not title_match:
+            continue
+        main_url = _scholar_abs_url(title_match.group(1))
+        title = _scholar_strip_tags(title_match.group(2))
+
+        meta_match = re.search(
+            r'<div class="gs_a">(.+?)</div>', block, re.DOTALL
+        )
+        meta = _scholar_strip_tags(meta_match.group(1)) if meta_match else ""
+
+        snippet_match = re.search(
+            r'<div class="gs_rs">(.+?)</div>', block, re.DOTALL
+        )
+        snippet = (
+            _scholar_strip_tags(snippet_match.group(1)) if snippet_match else ""
+        )
+
+        pdf_url = ""
+        pdf_match = re.search(
+            r'<div class="gs_ggs[^"]*"[^>]*>.*?<a[^>]+href="([^"]+)"',
+            block,
+            re.DOTALL,
+        )
+        if pdf_match:
+            pdf_url = _scholar_abs_url(pdf_match.group(1))
+
+        cited_by = ""
+        cited_url = ""
+        cited_match = re.search(
+            r'<a[^>]+href="([^"]+)"[^>]*>Cited by (\d+)</a>', block
+        )
+        if cited_match:
+            cited_url = _scholar_abs_url(cited_match.group(1))
+            cited_by = cited_match.group(2)
+
+        related_url = ""
+        related_match = re.search(
+            r'<a[^>]+href="([^"]+)"[^>]*>Related articles</a>', block
+        )
+        if related_match:
+            related_url = _scholar_abs_url(related_match.group(1))
+
+        results.append(
+            {
+                "title": title,
+                "url": main_url,
+                "meta": meta,
+                "snippet": snippet,
+                "pdf_url": pdf_url,
+                "cited_by": cited_by,
+                "cited_url": cited_url,
+                "related_url": related_url,
+            }
+        )
+
+    lines = [
+        "# Google Scholar search",
+        "",
+        "Query: `%s`" % query,
+        "URL: %s" % url,
+    ]
+    if result_count:
+        lines.append("Results: ~%s" % result_count)
+    lines.append("")
+
+    if not results:
+        lines.append("_No results found._")
+        return "\n".join(lines)
+
+    for i, r in enumerate(results, 1):
+        lines.append("%d. **%s**" % (i, r["title"]))
+        lines.append("   URL: %s" % r["url"])
+        if r["meta"]:
+            lines.append("   %s" % r["meta"])
+        if r["snippet"]:
+            lines.append("   > %s" % r["snippet"])
+        links = []
+        if r["pdf_url"]:
+            links.append("[PDF](%s)" % r["pdf_url"])
+        if r["cited_by"]:
+            links.append("[Cited by %s](%s)" % (r["cited_by"], r["cited_url"]))
+        if r["related_url"]:
+            links.append("[Related](%s)" % r["related_url"])
+        if links:
+            lines.append("   %s" % " · ".join(links))
+        lines.append("")
+
+    return "\n".join(lines).rstrip()
+
+
+google_scholar_search.safe = True
 
 
 def pubmed_search(query: str):

@@ -193,6 +193,7 @@ function with a docstring as a callable tool.
 - `openalex_search(query)` - Search 250M+ academic papers
 - `arxiv_search(query)` - Search preprints (physics, math, CS, biology, stats)
 - `pubmed_search(query)` - Search 35M+ biomedical articles
+- `google_scholar_search(query)` - Search Google Scholar (HTML scraping; may block)
 - `crossref_search(query)` - Search DOI metadata
 
 **Books**
