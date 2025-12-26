@@ -11,7 +11,6 @@ tools:
   - research_tools.hackernews_search
   - research_tools.reddit_search
   - reddit_tools.*
-  - research_tools.fetch_url
   - builtin.fetch_clean
   - builtin.datetime
 ---

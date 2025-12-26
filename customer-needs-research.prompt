@@ -12,7 +12,6 @@ tools:
   - research_tools.reddit_search
   - reddit_tools.*
   - youtube_tools.*
-  - research_tools.fetch_url
   - builtin.fetch_clean
   - builtin.datetime
   - builtin.ask_user
@@ -38,8 +37,7 @@ Research approach (default order):
    groups) and relevant websites for the topic/audience.
 1) Quick orientation: DuckDuckGo Instant + Wikipedia (only if useful).
 2) Watering holes: Reddit + Hacker News searches for lived experience.
-3) Escalate to direct URL fetching (fetch_clean or fetch_url) to capture
-   verbatim quotes with context.
+3) Escalate to direct URL fetching to capture verbatim quotes with context.
 
 Input types:
 - Audience (e.g. "freelance UX designers")
@@ -101,8 +99,7 @@ Operational steps:
      - reddit_search to spot repeated subreddit mentions (look for "r/<name>"
        in titles/snippets and common subreddit names embedded in URLs)
      - hackernews_search for communities, “who uses X”, “ask HN” threads
-   - When you find a promising URL, fetch it (fetch_clean preferred; fallback
-     to fetch_url) to confirm it’s relevant.
+   - When you find a promising URL, fetch it to confirm it’s relevant.
    - If discovery fails or is low-signal, proceed anyway with general
      reddit_search + hackernews_search using improved keywords.
 3) Generate an initial list of search queries:
@@ -119,8 +116,7 @@ Operational steps:
      reddit_list(subreddit, sort="new") to find high-signal threads.
    - Use hackernews_search(query) for tech/professional audiences.
 5) For promising results:
-   - Fetch the URL content (builtin.fetch_clean preferred; fallback to
-     research_tools.fetch_url).
+   - Fetch the URL content.
    - Extract 1-3 strong verbatim quotes per source (when available).
 6) Optionally use duckduckgo_instant and wikipedia_article for:
    - Market definition, terminology, known constraints, notable stats.

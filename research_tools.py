@@ -832,17 +832,3 @@ def crossref_search(query: str):
 
 crossref_search.safe = True
 
-
-def fetch_url(url: str):
-    """Fetch any URL and return its content as plain text.
-    
-    HTML pages are converted to plain text with tags stripped.
-    Use this for specific URLs you need to examine.
-    Content is truncated to avoid filling context.
-    """
-    if not url.startswith(('http://', 'https://')):
-        url = 'https://' + url
-    text = _fetch_text(url)
-    return {"url": url, "content": _truncate(text)}
-
-fetch_url.safe = True
