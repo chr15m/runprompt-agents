@@ -9,32 +9,7 @@ A collection of research and analysis agent prompts for [runprompt](https://gith
 General-purpose deep research agent. Gathers information from Wikipedia, academic databases (OpenAlex, arXiv, PubMed), community discussions (Reddit, Hacker News), and more.
 
 ```bash
-echo "history of the QWERTY keyboard layout" | ./research.prompt
-```
-
-### `steam_reviews.prompt`
-
-Analyzes Steam reviews to extract what players liked and disliked about a game.
-
-```bash
-echo "Hades" | ./steam_reviews.prompt
-echo "1145360" | ./steam_reviews.prompt  # by app ID
-```
-
-### `steam_hooks_analysis.prompt`
-
-Applies the "hooks framework" from Ryan Chambers' GDC talk to analyze a game's marketability. Evaluates what makes a game memorable, discussable, and shareable.
-
-```bash
-echo "Vampire Survivors" | ./steam_hooks_analysis.prompt
-```
-
-### `steam_mechanics_aesthetics_analysis.prompt`
-
-Documents a game's mechanics, aesthetics, and game feel in enough detail for a developer to create something similar.
-
-```bash
-echo "Celeste" | ./steam_mechanics_aesthetics_analysis.prompt
+./research.prompt "history of the QWERTY keyboard layout"
 ```
 
 ### `search.prompt`
@@ -42,7 +17,130 @@ echo "Celeste" | ./steam_mechanics_aesthetics_analysis.prompt
 Quick-answer assistant for simple questions. Tries instant answers first, then Wikipedia or community sources as needed.
 
 ```bash
-echo "What year was the first iPhone released?" | ./search.prompt
+./search.prompt "What year was the first iPhone released?"
+```
+
+### `alternatives.prompt`
+
+Research alternatives to a product, tool, or service. Finds competing products, open-source options, and pricing information.
+
+```bash
+./alternatives.prompt "Notion"
+```
+
+### `competitor_analysis.prompt`
+
+Perform competitive intelligence analysis for a product idea or market category. Identifies competitors, revenue signals, marketing strategies, and market gaps.
+
+```bash
+./competitor_analysis.prompt "AI-powered note-taking app"
+```
+
+### `customer-needs-research.prompt`
+
+Discover what customers need, want, and buy in a specific market. Gathers evidence from community discussions with verbatim quotes.
+
+```bash
+./customer-needs-research.prompt "freelance UX designers"
+```
+
+### `customer-segmentation.prompt`
+
+Identify distinct customer segments and use cases within a market or product category.
+
+```bash
+./customer-segmentation.prompt "Excel power users"
+```
+
+### `jobs-to-be-done.prompt`
+
+Apply the Jobs to Be Done framework to understand customer progress and hiring/firing decisions.
+
+```bash
+./jobs-to-be-done.prompt "small pizza shop owners in Australia"
+```
+
+### `domain_research.prompt`
+
+Brainstorm and check availability of domain names using RDAP lookups.
+
+```bash
+./domain_research.prompt "I need a domain for a web-based game console emulator"
+```
+
+### `github_issues.prompt`
+
+Extract and categorize GitHub issues based on specific queries.
+
+```bash
+./github_issues.prompt "microsoft/vscode: performance problems"
+```
+
+### `images_to_markdown.prompt`
+
+Convert images (screenshots, diagrams, documents) to structured Markdown descriptions. Use with `--file` to attach images.
+
+```bash
+./images_to_markdown.prompt --file screenshot.png
+```
+
+### `software-spec.prompt`
+
+Iteratively develop a detailed software specification through guided questions. Requires project files to be attached.
+
+```bash
+./software-spec.prompt --file README.md
+```
+
+### `web_extract.prompt`
+
+Interactively explore and extract content from web pages using browser automation.
+
+```bash
+./web_extract.prompt "Extract all reviews from https://example.com/reviews"
+```
+
+### `youtube_to_article.prompt`
+
+Convert YouTube video transcripts into well-formatted articles.
+
+```bash
+./youtube_to_article.prompt "https://www.youtube.com/watch?v=VIDEO_ID"
+```
+
+### Steam Analysis Prompts
+
+#### `steam_reviews.prompt`
+
+Analyzes Steam reviews to extract what players liked and disliked about a game.
+
+```bash
+./steam_reviews.prompt "Hades"
+./steam_reviews.prompt "1145360"  # by app ID
+```
+
+#### `steam_hooks_analysis.prompt`
+
+Applies the "hooks framework" from Ryan Chambers' GDC talk to analyze a game's marketability. Evaluates what makes a game memorable, discussable, and shareable.
+
+```bash
+./steam_hooks_analysis.prompt "Vampire Survivors"
+```
+
+#### `steam_mechanics_aesthetics_analysis.prompt`
+
+Documents a game's mechanics, aesthetics, and game feel in enough detail for a developer to create something similar.
+
+```bash
+./steam_mechanics_aesthetics_analysis.prompt "Celeste"
+```
+
+### `userinterfaces.prompt`
+
+Reverse-engineer UI elements from screenshots and generate a standalone HTML implementation.
+
+```bash
+./userinterfaces.prompt --file ui-screenshot.png
 ```
 
 ## Setup
@@ -55,7 +153,7 @@ export ANTHROPIC_API_KEY="your-key"
 
 ## Creating New `.prompt` Files
 
-This repo’s prompts follow the Dotprompt format used by `runprompt`: a
+This repo's prompts follow the Dotprompt format used by `runprompt`: a
 frontmatter block (YAML) plus a plain-text prompt template.
 
 ### 1) Start with a minimal prompt skeleton
@@ -117,7 +215,7 @@ This repo uses three common patterns:
 Two common styles:
 
 - Write to stdout only (most prompts here):
-  - Explicitly say “Output Markdown to stdout only.”
+  - Explicitly say "Output Markdown to stdout only."
 - Write to a file via a parameterized builtin tool:
   - Example pattern used by `research.prompt`:
 
@@ -126,7 +224,7 @@ Two common styles:
       - builtin.write_file("REPORT.md")
     ```
 
-    Then instruct: “Write the result into `REPORT.md`.”
+    Then instruct: "Write the result into `REPORT.md`."
 
 ## Creating Python Tool Modules
 
@@ -207,5 +305,25 @@ function with a docstring as a callable tool.
 - `hackernews_search(query)` - Search Hacker News discussions
 - `reddit_search(query, subreddit)` - Search Reddit posts
 
-**General**
-- `fetch_url(url)` - Fetch any URL as plain text
+### `reddit_tools.py`
+
+- `reddit_list(subreddit, sort, t, limit)` - List posts in a subreddit by sort and time window
+- `reddit_comments(permalink_or_url, sort, limit)` - Fetch comments for a Reddit post
+
+### `github_tools.py`
+
+- `github_issues_list(owner, repo, state, sort, direction, per_page, max_pages)` - List issues from a repository with pagination
+- `github_issues_search(owner, repo, query, sort, order, per_page)` - Search issues in a repository
+- `github_issue_comments(owner, repo, issue_number)` - Fetch all comments for a specific issue
+
+### `youtube_tools.py`
+
+- `youtube_feed_xml(user, channel_id, limit)` - Fetch YouTube's public Atom feed (videos.xml)
+- `youtube_channel_videos(channel_id, user, limit)` - List a channel's uploaded videos using scrapetube
+- `youtube_oembed(url_or_id)` - Fetch YouTube metadata via the public oEmbed endpoint
+- `youtube_metadata_pytube(url_or_id)` - Fetch YouTube metadata via pytube
+- `youtube_transcript(url_or_id, prepend_timestamps)` - Fetch a YouTube transcript
+
+### `domain_tools.py`
+
+- `rdap_domain(domain)` - Look up a domain via RDAP and infer availability
