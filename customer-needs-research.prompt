@@ -4,7 +4,7 @@ tools:
   - research_tools.*
   - reddit_tools.*
   - youtube_tools.*
-  - github.*
+  - github_tools.*
   - builtin.fetch_clean
   - builtin.datetime
   - builtin.ask_user
