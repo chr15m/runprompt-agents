@@ -832,3 +832,39 @@ def crossref_search(query: str):
 
 crossref_search.safe = True
 
+
+def stackoverflow_search(query: str):
+    """Search Stack Overflow for programming questions and answers.
+    
+    Returns questions with titles, scores, answer counts, and links.
+    Good for finding solutions to programming problems and technical issues.
+    """
+    url = "https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q=%s&site=stackoverflow&pagesize=%d" % (
+        urllib.parse.quote(query), MAX_ITEMS)
+    data = _fetch_json(url)
+    if "error" in data:
+        return data
+    
+    results = []
+    for item in data.get("items", []):
+        results.append({
+            "title": item.get("title", ""),
+            "url": item.get("link", ""),
+            "score": item.get("score", 0),
+            "answer_count": item.get("answer_count", 0),
+            "is_answered": item.get("is_answered", False),
+            "view_count": item.get("view_count", 0),
+            "tags": item.get("tags", [])[:5],
+            "creation_date": item.get("creation_date", ""),
+            "owner": item.get("owner", {}).get("display_name", "")
+        })
+    
+    return {
+        "query": query,
+        "total_count": data.get("total", 0),
+        "has_more": data.get("has_more", False),
+        "results": results
+    }
+
+stackoverflow_search.safe = True
+
